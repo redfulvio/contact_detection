@@ -80,7 +80,6 @@ private:
     
     //CrossCorrelation
     float crossCorrelation(int axis, int d);
-    float singleCrossCorrelation(int axis, int d);
 
     //possibleFinger
     void possibleFinger();

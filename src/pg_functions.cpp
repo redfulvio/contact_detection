@@ -461,52 +461,6 @@ float proto_functions::crossCorrelation(int axis, int d)
 /*********************************************************************/
 /*********************************************************************/
 
-float proto_functions::singleCrossCorrelation(int axis, int d)
-{
-	//axis is referred to matrix_acc_, d to database_window_
-   int i;
-   int n = 45;	//window size to do xcorr
-   int s = 0;	//start
-   float r;
-   float mean_x, mean_y, sum_x, sum_y, num_xy, denom;
-
-   mean_x = 0;
-   mean_y = 0;
-
-   num_xy=0;
-
-   sum_x = 0;
-   sum_y = 0;
-
-   for (i=s; i<n; i++) 
-   {
-   		mean_x = mean_x + single_acc_(axis,i);
-   		mean_y = mean_y + database_window1_(d,i);
-   }
-
-   mean_x = mean_x / (n-s);
-   mean_y = mean_y / (n-s);
-
-   //computing numerator and denominator
-   for (i=s; i<n; i++)
-   {
-   		num_xy = num_xy + (single_acc_(axis,i) - mean_x) * (database_window1_(d,i) - mean_y);
-   		sum_x = sum_x + (single_acc_(axis,i) - mean_x) * (single_acc_(axis,i) - mean_x);
-      	sum_y = sum_y + (database_window1_(d,i) - mean_y) * (database_window1_(d,i) - mean_y);
-    }
-
-    denom = sqrt(sum_x*sum_y);
-
-   /*computing correlation value*/
-    r = num_xy / denom;
-
-    return r;
-}
-
-
-/*********************************************************************/
-/*********************************************************************/
-
 void proto_functions::possibleFinger()
 {
 	float xcor_lower_limit = 0.50;
@@ -521,90 +475,54 @@ void proto_functions::possibleFinger()
 			{
 				case 0:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(0,0);
-
-					ros::Time begin = ros::Time::now();
 					xcv[0,0] = crossCorrelation(0,0);	//x axis
 					xcv[0,1] = crossCorrelation(1,1);	//y axis
 					xcv[0,2] = crossCorrelation(2,2);	//z axis
-					ros::Time end = ros::Time::now();
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
+					
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
 					if (cross_value_ >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;
-						std::cout << "computation time\t" << end - begin << std::endl;
 						answer(0);
-					}
 					
 					break;
 				}
 				case 1:	//case axis
-				{
-					float single;
-					single = singleCrossCorrelation(0,1);
-					
+				{			
 					xcv[0,0] = crossCorrelation(0,3);	//x axis
 					xcv[0,1] = crossCorrelation(1,4);	//y axis
 					xcv[0,2] = crossCorrelation(2,5);	//z axis
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
+
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
-					// std::cout << "cross_value_ frontal little\t" << cross_value_ << std::endl;
-
 					if (cross_value_ >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;
 						answer(1);
-					}
 					
 					break;
 				}
 				case 2:	//case axis
 				{
 					float cr1, cr2;
-					float single1, single2;
-
-					single1 = singleCrossCorrelation(0,1);
-					single2 = singleCrossCorrelation(0,2);
-
 
 					// frontal
 					xcv[0,0] = crossCorrelation(0,3);	//x axis
 					xcv[0,1] = crossCorrelation(1,4);	//y axis
 					xcv[0,2] = crossCorrelation(2,5);	//z axis
-					// cr1 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
+
 					cr1 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
 					// vertical
 					xcv[0,0] = crossCorrelation(0,6);	//x axis
 					xcv[0,1] = crossCorrelation(1,7);	//y axis
 					xcv[0,2] = crossCorrelation(2,8);	//z axis
-					// cr2 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
+
 					cr2 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 										
 					cross_value_ = std::max(cr1,cr2);
-					// cross_value_ = cr2;
-					// cr1 = 0;
 
 					if (cr1 > cr2 && cr1 >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single1 << std::endl;
 						answer(1);
-					}
 					else if(cr2 > cr1 && cr2 >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single2 << std::endl;
 						answer(2);
-					}
-
-					// if (cross_value_ >= xcor_lower_limit)
-					// {			
-					// 	answer(2);
-					// }
-					// break;
 				}
 			}
 			break;
@@ -621,66 +539,43 @@ void proto_functions::possibleFinger()
 				}
 				case 1:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(1,3);
 
 					xcv[0,0] = crossCorrelation(3,9);	//x axis
 					xcv[0,1] = crossCorrelation(4,10);	//y axis
 					xcv[0,2] = crossCorrelation(5,11);	//z axis
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
-					std::cout << "cross_value_ frontal ring\t" << cross_value_ << std::endl;
+					cross_value_ = std::max(std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
 					if (cross_value_ >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;	
 						answer(3);
-					}
 					
 					break;
 				}
 				case 2:	//case axis
 				{
 					float cr1, cr2;
-					float single1, single2;
-
-					single1 = singleCrossCorrelation(1,3);
-					single2 = singleCrossCorrelation(1,4);
 
 					//frontal
 					xcv[0,0] = crossCorrelation(3,9);	//x axis
 					xcv[0,1] = crossCorrelation(4,10);	//y axis
 					xcv[0,2] = crossCorrelation(5,11);	//z axis
-					// cr1 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
+
 					cr1 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
 					//vertical
-					xcv[0,0] = crossCorrelation(3,12);	//x axis12
-					xcv[0,1] = crossCorrelation(4,13);	//y axis13
-					xcv[0,2] = crossCorrelation(5,14);	//z axis14
-					// cr2 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
+					xcv[0,0] = crossCorrelation(3,12);	//x axis
+					xcv[0,1] = crossCorrelation(4,13);	//y axis
+					xcv[0,2] = crossCorrelation(5,14);	//z axis
+
 					cr2 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
 					cross_value_ = std::max(cr1,cr2);
-					// cross_value_ = cr2;
-					// cr1 = 0;
 
 					if (cr1 > cr2 && cr1 >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single1 << std::endl;	
 						answer(3);
-					}
 					else if(cr2 > cr1 && cr2 >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single2 << std::endl;
 						answer(4);
-					}
 
-					// if (cross_value_ >= xcor_lower_limit)
-					// {
-					// 	answer(4);
-					// }
 					break;
 				}
 			}
@@ -698,65 +593,40 @@ void proto_functions::possibleFinger()
 				}
 				case 1:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(2,5);
+					xcv[0,0] = crossCorrelation(6,15);	//x axis
+					xcv[0,1] = crossCorrelation(7,16);	//y axis
+					xcv[0,2] = crossCorrelation(8,17);	//z axis
 
-					xcv[0,0] = crossCorrelation(6,15);	//x axis15
-					xcv[0,1] = crossCorrelation(7,16);	//y axis16
-					xcv[0,2] = crossCorrelation(8,17);	//z axis17
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-
-					// std::cout << "cross_value_ frontal middle\t" << cross_value_ << std::endl;
 
 					if (cross_value_ >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;
 						answer(5);
-					}
 					
 					break;
 				}
 				case 2:	//case axis
 				{	
 					float cr1, cr2;
-					float single1, single2;
 
-					single1 = singleCrossCorrelation(2,5);
-					single2 = singleCrossCorrelation(2,6);
+					xcv[0,0] = crossCorrelation(6,15);	//x axis
+					xcv[0,1] = crossCorrelation(7,16);	//y axis
+					xcv[0,2] = crossCorrelation(8,17);	//z axis
 
-					xcv[0,0] = crossCorrelation(6,15);	//x axis15
-					xcv[0,1] = crossCorrelation(7,16);	//y axis16
-					xcv[0,2] = crossCorrelation(8,17);	//z axis17
-					// cr1 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
 					cr1 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-					// std::cout << "frontal middle\t" << cross_value_ << std::endl;
 
 					xcv[0,0] = crossCorrelation(6,18);	//x axis
 					xcv[0,1] = crossCorrelation(7,19);	//y axis
 					xcv[0,2] = crossCorrelation(8,20);	//z axis
-					// cr2 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
+
 					cr2 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-					// std::cout << "vertical middle\t" << cross_value_ << std::endl;
+
 					cross_value_ = std::max(cr1,cr2);
-					// cross_value_ = cr2;
-					// cr1 = 0;
 
 					if (cr1 > cr2 && cr1 >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single1 << std::endl;
 						answer(5);
-					}
 					else if(cr2 > cr1 && cr2 >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single2 << std::endl;
 						answer(6);
-					}
 
-					// if (cross_value_ >= xcor_lower_limit)
-					// {
-					// 	answer(6);
-					// }
 					break;	
 				}
 			}
@@ -769,84 +639,54 @@ void proto_functions::possibleFinger()
 			{
 				case 0:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(3,7);
-
 					xcv[0,0] = crossCorrelation(9,21);	//x axis
 					xcv[0,1] = crossCorrelation(10,22);	//y axis
 					xcv[0,2] = crossCorrelation(11,23);	//z axis
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
+
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
 					if (cross_value_ >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;
 						answer(7);
-					}
 					
 					break;
 				}
 				case 1:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(3,8);
+					xcv[0,0] = crossCorrelation(9,24);	//x axis
+					xcv[0,1] = crossCorrelation(10,25);	//y axis
+					xcv[0,2] = crossCorrelation(11,26);	//z axis
 
-					xcv[0,0] = crossCorrelation(9,24);	//x axis 24
-					xcv[0,1] = crossCorrelation(10,25);	//y axis 25
-					xcv[0,2] = crossCorrelation(11,26);	//z axis 26
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-
-
-					// std::cout << "cross_value_ frontal index\t" << cross_value_ << std::endl;
 
 					if (cross_value_ >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;
 						answer(8);
-					}
 					
 					break;
 				}
 				case 2:	//case axis
 				{
 					float cr1, cr2;
-					float single1, single2;
-
-					single1 = singleCrossCorrelation(3,8);
-					single2 = singleCrossCorrelation(3,9);
 
 					// frontal
 					xcv[0,0] = crossCorrelation(9,24);	//x axis
 					xcv[0,1] = crossCorrelation(10,25);	//y axis
 					xcv[0,2] = crossCorrelation(11,26);	//z axis
-					// cr1 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
+
 					cr1 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
 					// vertical
 					xcv[0,0] = crossCorrelation(9,27);	//x axis
 					xcv[0,1] = crossCorrelation(10,28);	//y axis
 					xcv[0,2] = crossCorrelation(11,29);	//z axis
-					// cr2 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
+
 					cr2 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
 					cross_value_ = std::max(cr1, cr2);
-					// cross_value_ = cr2;
-					// cr1 = 0;
 
 					if (cr1 > cr2 && cr1 >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single1 << std::endl;
 						answer(8);
-					}
 					else if (cr2 > cr1 && cr2 >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single2 << std::endl;
 						answer(9);
-					}
-
-					// if (cross_value_ >= xcor_lower_limit)
-					// 	answer(9);
 					
 					break;	
 				}
@@ -861,12 +701,10 @@ void proto_functions::possibleFinger()
 
 				case 0:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(4,10);
-
 					xcv[0,0] = crossCorrelation(12,30);	//x axis
 					xcv[0,1] = crossCorrelation(13,31);	//y axis
 					xcv[0,2] = crossCorrelation(14,32);	//z axis
+
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
 					if (cross_value_ >= xcor_lower_limit)
@@ -876,41 +714,28 @@ void proto_functions::possibleFinger()
 				}
 				case 1:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(4,11);
 					
 					xcv[0,0] = crossCorrelation(12,33);	//x axis
 					xcv[0,1] = crossCorrelation(13,34);	//y axis
 					xcv[0,2] = crossCorrelation(14,35);	//z axis
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
+
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-					// std::cout << xcv[0,0] << " " << xcv[0,1] << " " << xcv[0,2] << std::endl;
 
 					if (cross_value_ >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;
 						answer(11);
-					}
 					
 					break;
 				}
 				case 2:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(4,12);
-
 					xcv[0,0] = crossCorrelation(12,36);	//x axis
 					xcv[0,1] = crossCorrelation(13,37);	//y axis
 					xcv[0,2] = crossCorrelation(14,38);	//z axis
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
+
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-					// std::cout << xcv[0,0] << " " << xcv[0,1] << " " << xcv[0,2] << std::endl;
 
 					if (cross_value_ >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;	
 						answer(12);
-					}
 					
 					break;
 				}
@@ -1022,7 +847,6 @@ bool proto_functions::GyroControl()
 	float max_av = 500;
 	float min_av = 20;
 	float max_gx = 0, max_gy = 0, max_gz = 0;
-	// float g1 = 0, g2 = 0;
 	int count_gyro_x = 0, count_gyro_y = 0, count_gyro_z = 0;
 	int gap = 2;
 
@@ -1053,11 +877,7 @@ bool proto_functions::GyroControl()
 					count_gyro_z ++;
 				}
 			}
-
-			// if (count_gyro_x >= gap && count_gyro_y >= count_gyro_z)	//vertical
-			
-
-
+		
 
 			
 			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side
@@ -1080,22 +900,6 @@ bool proto_functions::GyroControl()
 
 
 			break;
-
-
-
-
-
-				// if (count_gyro_y > count_gyro_z)	//vertical
-				// {
-					// axis_ = 2;
-					// return true;
-				// }
-				// else if (count_gyro_y < count_gyro_z)	//frontal
-				// {
-					// std::cout << "frontal index\n";
-					// axis_ = 1;
-					// return true;
-				// }
 
 		}
 
@@ -1124,7 +928,7 @@ bool proto_functions::GyroControl()
 			}
 
 			
-			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side
+			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side (never occurs)
 			{
 					axis_ = 0;
 					return true;	
@@ -1143,34 +947,6 @@ bool proto_functions::GyroControl()
 				return false;
 
 			break;
-
-
-			// if (count_gyro_x >= gap && count_gyro_y >= gap)	//vertical
-			// {
-			// 	axis_ = 2;
-			// 	return true;
-			// }
-			// else if (count_gyro_x >= gap && count_gyro_z >= gap)	//frontal
-			// {
-			// 	axis_ = 1;
-			// 	return true;
-			// }
-			// else return false;
-
-			// if (fabs(max_gx) > fabs(max_gz) && count_gyro_x>= gap)	//vertical
-			// {
-			// 	axis_ = 2;
-			// 	return true;
-			// }
-			// else if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//frontal
-			// {
-			// 	// std::cout << "maybe frontal ring\n";
-			// 	axis_ = 1;
-			// 	return true;
-			// }
-			// else return false;
-
-			// break;
 
 		}
 
@@ -1196,25 +972,10 @@ bool proto_functions::GyroControl()
 					max_gz = matrix_gyro_z_(i,j);
 					count_gyro_z ++;
 				}
-
-				/*
-				//control on index
-				if (fabs(matrix_gyro_x_(i+1,j)) >= 10 && fabs(matrix_gyro_x_(i+1,j)) > fabs(g1) && fabs(matrix_gyro_x_(i+1,j)) < max_av)
-				{
-					g1 = matrix_gyro_x_(i+1,j);
-					// count_gyro_x ++;
-				}
-				//control on ring
-				if (fabs(matrix_gyro_x_(i-1,j)) >= 10 && fabs(matrix_gyro_x_(i-1,j)) > fabs(g2) && fabs(matrix_gyro_x_(i-1,j)) < max_av)
-				{
-					g2 = matrix_gyro_x_(i-1,j);
-					// count_gyro_x ++;
-				}
-				*/
 			}
 
 				
-			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side
+			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side (never occurs)
 			{
 					axis_ = 0;
 					return true;	
@@ -1233,36 +994,6 @@ bool proto_functions::GyroControl()
 				return false;
 
 				break;
-
-
-			// if (count_gyro_x >= gap && count_gyro_y >= gap)	//vertical
-			// {
-			// 	axis_ = 2;
-			// 	return true;
-			// }
-			// else if (count_gyro_x >= gap && count_gyro_z >= gap)	//frontal
-			// {
-			// 	axis_ = 1;
-			// 	return true;
-			// }
-			// else return false;
-
-			// if (fabs(max_gx) > fabs(max_gz) && (g1 > 0 || g2 > 0) )	//vertical
-
-			// else if (fabs(max_gx) > fabs(max_gz) && count_gyro_x >= gap)	//vertical
-			// {
-			// 	axis_ = 2;
-			// 	return true;
-			// }
-			// else if (fabs(max_gx) < fabs(max_gz) && count_gyro_z >= gap)	//frontal
-			// {
-			// 	// std::cout << "maybe frontal middle\n";
-			// 	axis_ = 1;
-			// 	return true;
-			// }
-			// else return false;
-
-			// break;
 
 		}
 
@@ -1311,33 +1042,6 @@ bool proto_functions::GyroControl()
 				return false;
 
 			break;
-
-			// if (fabs(max_gx) > fabs(max_gz) && count_gyro_x >= gap)
-			// {
-			// 	// if (count_gyro_y > count_gyro_z)	//vertical
-			// 	// {
-			// 		axis_ = 2;
-			// 		return true;
-			// 	// }
-			// 	// else if (count_gyro_y < count_gyro_z)	//frontal
-			// 	// {
-			// 	// 	// std::cout << "frontal index\n";
-			// 	// 	axis_ = 1;
-			// 	// 	return true;
-			// 	// }
-			// }
-			// else if (fabs(max_gz) > fabs(max_gx))	//side
-			// {
-			// 	if(count_gyro_z >= gap)
-			// 	{
-			// 		axis_ = 0;
-			// 		return true;
-			// 	}
-			// }
-			// else
-			// 	return false;
-
-			// break;
 
 		}
 
@@ -1397,54 +1101,6 @@ bool proto_functions::GyroControl()
 				break;
 	}
 
-
-
-
-
-	/*	for (j=3; j<f; j++)
-		{
-			if (matrix_gyro_x_(i,j) < 0)
-			{
-				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av)
-				{
-					max_gx = matrix_gyro_x_(i,j);
-					count_gyro_x ++;
-				}
-			}
-			if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
-			{
-				max_gy = matrix_gyro_y_(i,j);
-				count_gyro_y ++;
-			}
-			if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av)
-			{
-				max_gz = matrix_gyro_z_(i,j);
-				count_gyro_z ++;
-			}
-		}*/
-
-	/*if (count_gyro_x >= gap && count_gyro_z >= gap && count_gyro_y >= gap)
-	{
-		axis_ = 1;
-		return true;
-	}
-	else if (count_gyro_z >= gap && count_gyro_z >= count_gyro_x && count_gyro_z >= count_gyro_y)
-	{
-		axis_ = 0;
-		return true;
-	}
-	else if (count_gyro_x >= gap && count_gyro_x >= count_gyro_y && count_gyro_x >= count_gyro_z)
-	{
-		axis_ = 2;
-		return true;
-	}
-	// else if ( count_gyro_x >= gap && count_gyro_z >= gap && count_gyro_y >= gap)
-	// {
-	// 	axis_ = 1;
-	// 	return true;
-	// }
-	// else
-	// 	return false;*/
 }
 
 
