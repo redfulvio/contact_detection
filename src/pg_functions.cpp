@@ -463,7 +463,7 @@ float proto_functions::crossCorrelation(int axis, int d)
 
 void proto_functions::possibleFinger()
 {
-	float xcor_lower_limit = 0.50;
+	float xcorr_lower_limit = 0.50;
 	std::vector<float> xcv;
 	xcv.resize(1,3);
 
@@ -481,7 +481,7 @@ void proto_functions::possibleFinger()
 					
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
-					if (cross_value_ >= xcor_lower_limit)
+					if (cross_value_ >= xcorr_lower_limit)
 						answer(0);
 					
 					break;
@@ -494,7 +494,7 @@ void proto_functions::possibleFinger()
 
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
-					if (cross_value_ >= xcor_lower_limit)
+					if (cross_value_ >= xcorr_lower_limit)
 						answer(1);
 					
 					break;
@@ -519,9 +519,9 @@ void proto_functions::possibleFinger()
 										
 					cross_value_ = std::max(cr1,cr2);
 
-					if (cr1 > cr2 && cr1 >= xcor_lower_limit)
+					if (cr1 > cr2 && cr1 >= xcorr_lower_limit)
 						answer(1);
-					else if(cr2 > cr1 && cr2 >= xcor_lower_limit)
+					else if(cr2 > cr1 && cr2 >= xcorr_lower_limit)
 						answer(2);
 				}
 			}
@@ -546,7 +546,7 @@ void proto_functions::possibleFinger()
 
 					cross_value_ = std::max(std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
-					if (cross_value_ >= xcor_lower_limit)
+					if (cross_value_ >= xcorr_lower_limit)
 						answer(3);
 					
 					break;
@@ -571,9 +571,9 @@ void proto_functions::possibleFinger()
 
 					cross_value_ = std::max(cr1,cr2);
 
-					if (cr1 > cr2 && cr1 >= xcor_lower_limit)
+					if (cr1 > cr2 && cr1 >= xcorr_lower_limit)
 						answer(3);
-					else if(cr2 > cr1 && cr2 >= xcor_lower_limit)
+					else if(cr2 > cr1 && cr2 >= xcorr_lower_limit)
 						answer(4);
 
 					break;
@@ -599,7 +599,7 @@ void proto_functions::possibleFinger()
 
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
-					if (cross_value_ >= xcor_lower_limit)
+					if (cross_value_ >= xcorr_lower_limit)
 						answer(5);
 					
 					break;
@@ -622,9 +622,9 @@ void proto_functions::possibleFinger()
 
 					cross_value_ = std::max(cr1,cr2);
 
-					if (cr1 > cr2 && cr1 >= xcor_lower_limit)
+					if (cr1 > cr2 && cr1 >= xcorr_lower_limit)
 						answer(5);
-					else if(cr2 > cr1 && cr2 >= xcor_lower_limit)
+					else if(cr2 > cr1 && cr2 >= xcorr_lower_limit)
 						answer(6);
 
 					break;	
@@ -645,7 +645,7 @@ void proto_functions::possibleFinger()
 
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
-					if (cross_value_ >= xcor_lower_limit)
+					if (cross_value_ >= xcorr_lower_limit)
 						answer(7);
 					
 					break;
@@ -658,7 +658,7 @@ void proto_functions::possibleFinger()
 
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
-					if (cross_value_ >= xcor_lower_limit)
+					if (cross_value_ >= xcorr_lower_limit)
 						answer(8);
 					
 					break;
@@ -683,9 +683,9 @@ void proto_functions::possibleFinger()
 
 					cross_value_ = std::max(cr1, cr2);
 
-					if (cr1 > cr2 && cr1 >= xcor_lower_limit)
+					if (cr1 > cr2 && cr1 >= xcorr_lower_limit)
 						answer(8);
-					else if (cr2 > cr1 && cr2 >= xcor_lower_limit)
+					else if (cr2 > cr1 && cr2 >= xcorr_lower_limit)
 						answer(9);
 					
 					break;	
@@ -707,7 +707,7 @@ void proto_functions::possibleFinger()
 
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
-					if (cross_value_ >= xcor_lower_limit)
+					if (cross_value_ >= xcorr_lower_limit)
 						answer(10);
 					
 					break;
@@ -721,7 +721,7 @@ void proto_functions::possibleFinger()
 
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
-					if (cross_value_ >= xcor_lower_limit)
+					if (cross_value_ >= xcorr_lower_limit)
 						answer(11);
 					
 					break;
@@ -734,7 +734,7 @@ void proto_functions::possibleFinger()
 
 					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
 
-					if (cross_value_ >= xcor_lower_limit)
+					if (cross_value_ >= xcorr_lower_limit)
 						answer(12);
 					
 					break;
