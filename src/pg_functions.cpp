@@ -2,7 +2,6 @@
 
 proto_functions::proto_functions()
 {
-	//this is the brach 3axes
 	/******* common part *******/
 
 	size_ = 15;
@@ -34,8 +33,8 @@ proto_functions::proto_functions()
 	/******* accelerations part *******/
 
 	cross_value_ = 0;
-	axis_ = 100; //NaN
 	database_size_ = 13; //#rows
+	axis_ = 100; //NaN
 
 	filt_acc_.resize(7,3);
 	filt_acc_.setZero(7,3);
@@ -46,13 +45,9 @@ proto_functions::proto_functions()
 	// matrix for accelerations
 	matrix_acc_.resize(21,size_);
 	matrix_acc_.setZero(21,size_);
-	single_acc_.resize(7,size_*3);
-	single_acc_.setZero(7,size_*3);
 
 	// matrix for correlation
-	database_window_.resize(database_size_*3,size_);
-	database_window1_.resize(database_size_,3*size_);
-
+	database_window_.resize(database_size_,size_);
 
 
 	/******* gyroscopes part ******/
@@ -86,9 +81,9 @@ void proto_functions::getDatabaseWindow()
 	int k, h;
 	std::vector<std::string> imu_name;
 	std::vector<float> database_vector;
-	database_vector.resize(1,size_*3);
+	database_vector.resize(1,size_);
 
-	imu_name.resize(database_size_);
+	imu_name.resize(database_size_+1);
 	imu_name[0] = "side_little";
 	imu_name[1] = "frontal_little";
 	imu_name[2] = "vertical_little";
@@ -103,23 +98,14 @@ void proto_functions::getDatabaseWindow()
 	imu_name[11] = "frontal_thumb";
 	imu_name[12] = "vertical_thumb";
 
-	//loop for primitive
 	for (k=0; k<database_size_; k++)
 	{
 		n_.getParam(imu_name[k], database_vector);
 
-		//loading x, y, z values into three different rows
 		for (h=0; h<size_; h++)
 			{
-				database_window_(3*k,h) = database_vector[0,3*h];		//x
-				database_window_(3*k+1,h) = database_vector[0,3*h+1];	//y
-				database_window_(3*k+2,h) = database_vector[0,3*h+2];	//z
+				database_window_(k,h) = database_vector[0,h];
 			}
-
-		for (h=0; h<size_*3; h++)
-		{
-			database_window1_(k,h) = database_vector[0,h];
-		}
 	}
 
 	sleep(1);
@@ -282,16 +268,6 @@ void proto_functions::updateAccMatrix()
 			matrix_acc_(i,j) = matrix_acc_(i,j+1);
 		}
 	}
-
-	for (i=0; i<7; i++)
-	{
-		for (j=0; j<size_-1; j++)
-		{
-			single_acc_(i,3*j) = single_acc_(i,3*j+3);
-			single_acc_(i,3*j+1) = single_acc_(i,3*j+4);
-			single_acc_(i,3*j+2) = single_acc_(i,3*j+5);
-		}
-	}
 }
 
 /*********************************************************************/
@@ -306,10 +282,6 @@ void proto_functions::loadAcc()
   	matrix_acc_(3*i,size_-1) = filt_acc_(i,0);
   	matrix_acc_(3*i+1,size_-1) = filt_acc_(i,1);
   	matrix_acc_(3*i+2,size_-1) = filt_acc_(i,2);
-
-  	single_acc_(i,size_-3) = filt_acc_(i,0);
-  	single_acc_(i,size_-2) = filt_acc_(i,1);
-  	single_acc_(i,size_-1) = filt_acc_(i,2);
   }
 }
 
@@ -325,11 +297,9 @@ bool proto_functions::AccControl()
 	std::vector<float> imu_value;
 	imu_value.resize(imu_num_);
 
-	//taking the maximum value for each imu
 	for (i=0; i<imu_num_; i++)
-		imu_value[i] = checkMaxAcc(i); 
+		imu_value[i] = checkMaxAcc(i,true); 
 
-	//checking the maximum
 	for (i=0; i<imu_num_; i++)
 	{
 		if (value < imu_value[i])
@@ -342,10 +312,10 @@ bool proto_functions::AccControl()
 	if (hit == 100)
 		return false; 	
 
-	//control on lower limit
 	if (imu_value[hit] > trade)
 	{
 		hit_imu_ = hit;
+		axis_ = checkMaxAcc(hit_imu_,false);
 		return true;
 	}
 	else
@@ -357,59 +327,54 @@ bool proto_functions::AccControl()
 /*********************************************************************/
 /*********************************************************************/
 
-float proto_functions::checkMaxAcc(int imu)
+float proto_functions::checkMaxAcc(int imu, bool v)
 {
 	int i;
 	float max_value = 0;
 	std::vector<float> tmp_value;
 	tmp_value.resize(3);
-	// int axis;
-	float max1, max2;
+	int axis;
 
 	for (i=0; i<3; i++)
 		tmp_value[i] = 0;
 
-
 	//the recorded pic is in position number 4
-	for (i=3; i<4; i++)
+
+	for (i=3; i<5; i++)
 	{
-		if(fabs(matrix_acc_(3*imu,i)) > fabs(tmp_value[0]))		//max on x
-			tmp_value[0] = matrix_acc_(3*imu,i);
+		if(fabs(matrix_acc_(3*imu,i)) > tmp_value[0])		//max on x
+			tmp_value[0] = fabs(matrix_acc_(3*imu,i));
 
-		if(fabs(matrix_acc_(3*imu+1,i)) > fabs(tmp_value[1]))		//max on y
-			tmp_value[1] = matrix_acc_(3*imu+1,i);
+		if(fabs(matrix_acc_(3*imu+1,i)) > tmp_value[1])		//max on y
+			tmp_value[1] = fabs(matrix_acc_(3*imu+1,i));
 
-		if(fabs(matrix_acc_(3*imu+2,i)) > fabs(tmp_value[2]))		//max on z
-			tmp_value[2] = matrix_acc_(3*imu+2,i);
+		if(fabs(matrix_acc_(3*imu+2,i)) > tmp_value[2])		//max on z
+			tmp_value[2] = fabs(matrix_acc_(3*imu+2,i));
 	}
 
-	/*
-	max1 = std::max(fabs(tmp_value[0]),fabs(tmp_value[1]));
-	max2 = std::max(fabs(tmp_value[1]),fabs(tmp_value[2]));
-	max_value = std::max(fabs(max1),fabs(max2));
 
-	return max_value;
-	*/
-
-
-	if (fabs(tmp_value[0]) > fabs(tmp_value[1]) && fabs(tmp_value[0]) > fabs(tmp_value[2]))
+	if (tmp_value[0] > tmp_value[1] && tmp_value[0] > tmp_value[2])
 	{
-		max_value = fabs(tmp_value[0]);
-		// direction_ = 0;
+		max_value = tmp_value[0];
+		axis = 0;
+	}
+		
+	if (tmp_value[1] > tmp_value[0] && tmp_value[1] > tmp_value[2])
+	{
+		max_value = tmp_value[1];
+		axis = 1;
+	}
+
+	if (tmp_value[2] > tmp_value[0] && tmp_value[2] > tmp_value[1])
+	{
+		max_value = tmp_value[2];
+		axis = 2;
+	}
+
+	if(v)
 		return max_value;
-	}
-	else if (fabs(tmp_value[1]) > fabs(tmp_value[0]) && fabs(tmp_value[1]) > fabs(tmp_value[2]))
-	{
-		max_value = fabs(tmp_value[1]);
-		// direction_ = 1;
-		return max_value;
-	}
-	else if (fabs(tmp_value[2]) > fabs(tmp_value[0]) && fabs(tmp_value[2]) > fabs(tmp_value[1]))
-	{
-		max_value = fabs(tmp_value[2]);
-		// direction_ = 2;
-		return max_value;
-	}
+	else
+		return axis;
 
 }
 
@@ -421,7 +386,7 @@ float proto_functions::crossCorrelation(int axis, int d)
 	//axis is referred to matrix_acc_, d to database_window_
    int i;
    int n = 15;	//window size to do xcorr
-   int s = 0;	//start
+   int s = 3;	//start
    float r;
    float mean_x, mean_y, sum_x, sum_y, num_xy, denom;
 
@@ -461,156 +426,51 @@ float proto_functions::crossCorrelation(int axis, int d)
 /*********************************************************************/
 /*********************************************************************/
 
-float proto_functions::singleCrossCorrelation(int axis, int d)
-{
-	//axis is referred to matrix_acc_, d to database_window_
-   int i;
-   int n = 45;	//window size to do xcorr
-   int s = 0;	//start
-   float r;
-   float mean_x, mean_y, sum_x, sum_y, num_xy, denom;
-
-   mean_x = 0;
-   mean_y = 0;
-
-   num_xy=0;
-
-   sum_x = 0;
-   sum_y = 0;
-
-   for (i=s; i<n; i++) 
-   {
-   		mean_x = mean_x + single_acc_(axis,i);
-   		mean_y = mean_y + database_window1_(d,i);
-   }
-
-   mean_x = mean_x / (n-s);
-   mean_y = mean_y / (n-s);
-
-   //computing numerator and denominator
-   for (i=s; i<n; i++)
-   {
-   		num_xy = num_xy + (single_acc_(axis,i) - mean_x) * (database_window1_(d,i) - mean_y);
-   		sum_x = sum_x + (single_acc_(axis,i) - mean_x) * (single_acc_(axis,i) - mean_x);
-      	sum_y = sum_y + (database_window1_(d,i) - mean_y) * (database_window1_(d,i) - mean_y);
-    }
-
-    denom = sqrt(sum_x*sum_y);
-
-   /*computing correlation value*/
-    r = num_xy / denom;
-
-    return r;
-}
-
-
-/*********************************************************************/
-/*********************************************************************/
-
 void proto_functions::possibleFinger()
 {
-	float xcor_lower_limit = 0.50;
-	std::vector<float> xcv;
-	xcv.resize(1,3);
+	float xcorr_lower_limit = 0.65;
 
 	switch(hit_imu_)
 	{
-		case 0:	//case little
+		case 0:	//case imu
 		{
 			switch(axis_)
 			{
 				case 0:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(0,0);
-
-					ros::Time begin = ros::Time::now();
-					xcv[0,0] = crossCorrelation(0,0);	//x axis
-					xcv[0,1] = crossCorrelation(1,1);	//y axis
-					xcv[0,2] = crossCorrelation(2,2);	//z axis
-					ros::Time end = ros::Time::now();
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-
-					if (cross_value_ >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;
-						std::cout << "computation time\t" << end - begin << std::endl;
-						answer(0);
-					}
-					
-					break;
+						cross_value_ = crossCorrelation(0,0);	//x axis
+						if (cross_value_ >= xcorr_lower_limit)
+						{
+							iia_ = 0;
+							answer();
+						}
+						break;
 				}
 				case 1:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(0,1);
-					
-					xcv[0,0] = crossCorrelation(0,3);	//x axis
-					xcv[0,1] = crossCorrelation(1,4);	//y axis
-					xcv[0,2] = crossCorrelation(2,5);	//z axis
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-
-					// std::cout << "cross_value_ frontal little\t" << cross_value_ << std::endl;
-
-					if (cross_value_ >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;
-						answer(1);
-					}
-					
-					break;
+						cross_value_ = crossCorrelation(1,0);	//y axis
+						if (cross_value_ >= xcorr_lower_limit)
+						{
+							iia_ = 1;
+							answer();
+						}
+						break;
 				}
 				case 2:	//case axis
 				{
-					float cr1, cr2;
-					float single1, single2;
-
-					single1 = singleCrossCorrelation(0,1);
-					single2 = singleCrossCorrelation(0,2);
-
-
-					// frontal
-					xcv[0,0] = crossCorrelation(0,3);	//x axis
-					xcv[0,1] = crossCorrelation(1,4);	//y axis
-					xcv[0,2] = crossCorrelation(2,5);	//z axis
-					// cr1 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cr1 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-
-					// vertical
-					xcv[0,0] = crossCorrelation(0,6);	//x axis
-					xcv[0,1] = crossCorrelation(1,7);	//y axis
-					xcv[0,2] = crossCorrelation(2,8);	//z axis
-					// cr2 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cr2 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-										
-					cross_value_ = std::max(cr1,cr2);
-					// cross_value_ = cr2;
-					// cr1 = 0;
-
-					if (cr1 > cr2 && cr1 >= xcor_lower_limit)
+					cross_value_ = crossCorrelation(2,9);	//z axis  (,2)
+					if (cross_value_ >= xcorr_lower_limit)
 					{
-						std::cout << "value of single cross correlation\t" << single1 << std::endl;
-						answer(1);
+						iia_ = 2;			
+						answer();
 					}
-					else if(cr2 > cr1 && cr2 >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single2 << std::endl;
-						answer(2);
-					}
-
-					// if (cross_value_ >= xcor_lower_limit)
-					// {			
-					// 	answer(2);
-					// }
-					// break;
+					break;
 				}
 			}
 			break;
 		}
 
-		case 1:	//case ring
+		case 1:	//case imu
 		{
 			switch(axis_)
 			{
@@ -621,73 +481,29 @@ void proto_functions::possibleFinger()
 				}
 				case 1:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(1,3);
-
-					xcv[0,0] = crossCorrelation(3,9);	//x axis
-					xcv[0,1] = crossCorrelation(4,10);	//y axis
-					xcv[0,2] = crossCorrelation(5,11);	//z axis
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-
-					std::cout << "cross_value_ frontal ring\t" << cross_value_ << std::endl;
-
-					if (cross_value_ >= xcor_lower_limit)
+					cross_value_ = crossCorrelation(4,3);	//y axis
+					if (cross_value_ >= xcorr_lower_limit)
 					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;	
-						answer(3);
+						iia_ = 3;
+						answer();
 					}
-					
 					break;
 				}
 				case 2:	//case axis
 				{
-					float cr1, cr2;
-					float single1, single2;
-
-					single1 = singleCrossCorrelation(1,3);
-					single2 = singleCrossCorrelation(1,4);
-
-					//frontal
-					xcv[0,0] = crossCorrelation(3,9);	//x axis
-					xcv[0,1] = crossCorrelation(4,10);	//y axis
-					xcv[0,2] = crossCorrelation(5,11);	//z axis
-					// cr1 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cr1 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-
-					//vertical
-					xcv[0,0] = crossCorrelation(3,12);	//x axis12
-					xcv[0,1] = crossCorrelation(4,13);	//y axis13
-					xcv[0,2] = crossCorrelation(5,14);	//z axis14
-					// cr2 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cr2 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-
-					cross_value_ = std::max(cr1,cr2);
-					// cross_value_ = cr2;
-					// cr1 = 0;
-
-					if (cr1 > cr2 && cr1 >= xcor_lower_limit)
+					cross_value_ = crossCorrelation(5,9);	//z axis (,4)
+					if (cross_value_ >= xcorr_lower_limit)
 					{
-						std::cout << "value of single cross correlation\t" << single1 << std::endl;	
-						answer(3);
+						iia_ = 4;
+						answer();
 					}
-					else if(cr2 > cr1 && cr2 >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single2 << std::endl;
-						answer(4);
-					}
-
-					// if (cross_value_ >= xcor_lower_limit)
-					// {
-					// 	answer(4);
-					// }
 					break;
 				}
 			}
 			break;
 		}
 
-		case 2:	//case middle
+		case 2:	//case imu
 		{
 			switch(axis_)
 			{
@@ -698,220 +514,99 @@ void proto_functions::possibleFinger()
 				}
 				case 1:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(2,5);
-
-					xcv[0,0] = crossCorrelation(6,15);	//x axis15
-					xcv[0,1] = crossCorrelation(7,16);	//y axis16
-					xcv[0,2] = crossCorrelation(8,17);	//z axis17
-					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-
-					// std::cout << "cross_value_ frontal middle\t" << cross_value_ << std::endl;
-
-					if (cross_value_ >= xcor_lower_limit)
+					cross_value_ = crossCorrelation(7,5);	//y axis
+					if (cross_value_ >= xcorr_lower_limit)
 					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;
-						answer(5);
+						iia_ = 5;
+						answer();
 					}
-					
 					break;
 				}
 				case 2:	//case axis
 				{	
-					float cr1, cr2;
-					float single1, single2;
-
-					single1 = singleCrossCorrelation(2,5);
-					single2 = singleCrossCorrelation(2,6);
-
-					xcv[0,0] = crossCorrelation(6,15);	//x axis15
-					xcv[0,1] = crossCorrelation(7,16);	//y axis16
-					xcv[0,2] = crossCorrelation(8,17);	//z axis17
-					// cr1 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cr1 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-					// std::cout << "frontal middle\t" << cross_value_ << std::endl;
-
-					xcv[0,0] = crossCorrelation(6,18);	//x axis
-					xcv[0,1] = crossCorrelation(7,19);	//y axis
-					xcv[0,2] = crossCorrelation(8,20);	//z axis
-					// cr2 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cr2 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-					// std::cout << "vertical middle\t" << cross_value_ << std::endl;
-					cross_value_ = std::max(cr1,cr2);
-					// cross_value_ = cr2;
-					// cr1 = 0;
-
-					if (cr1 > cr2 && cr1 >= xcor_lower_limit)
+					cross_value_ = crossCorrelation(8,9);	//z axis (,6)
+					if (cross_value_ >= xcorr_lower_limit)
 					{
-						std::cout << "value of single cross correlation\t" << single1 << std::endl;
-						answer(5);
+						iia_ = 6;
+						answer();
 					}
-					else if(cr2 > cr1 && cr2 >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single2 << std::endl;
-						answer(6);
-					}
-
-					// if (cross_value_ >= xcor_lower_limit)
-					// {
-					// 	answer(6);
-					// }
 					break;	
 				}
 			}
 			break;
 		}
 
-		case 3:	//case index
+		case 3:	//case imu
 		{
 			switch(axis_)
 			{
 				case 0:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(3,7);
-
-					xcv[0,0] = crossCorrelation(9,21);	//x axis
-					xcv[0,1] = crossCorrelation(10,22);	//y axis
-					xcv[0,2] = crossCorrelation(11,23);	//z axis
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-
-					if (cross_value_ >= xcor_lower_limit)
+					cross_value_ = crossCorrelation(9,7);	//x axis
+					if (cross_value_ >= xcorr_lower_limit)
 					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;
-						answer(7);
+						iia_ = 7;
+						answer();
 					}
-					
 					break;
 				}
 				case 1:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(3,8);
-
-					xcv[0,0] = crossCorrelation(9,24);	//x axis 24
-					xcv[0,1] = crossCorrelation(10,25);	//y axis 25
-					xcv[0,2] = crossCorrelation(11,26);	//z axis 26
-					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-
-
-					// std::cout << "cross_value_ frontal index\t" << cross_value_ << std::endl;
-
-					if (cross_value_ >= xcor_lower_limit)
+					cross_value_ = crossCorrelation(10,8);	//y axis
+					if (cross_value_ >= xcorr_lower_limit)
 					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;
-						answer(8);
+						iia_ = 8;
+						answer();
 					}
-					
 					break;
 				}
 				case 2:	//case axis
 				{
-					float cr1, cr2;
-					float single1, single2;
-
-					single1 = singleCrossCorrelation(3,8);
-					single2 = singleCrossCorrelation(3,9);
-
-					// frontal
-					xcv[0,0] = crossCorrelation(9,24);	//x axis
-					xcv[0,1] = crossCorrelation(10,25);	//y axis
-					xcv[0,2] = crossCorrelation(11,26);	//z axis
-					// cr1 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cr1 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-
-					// vertical
-					xcv[0,0] = crossCorrelation(9,27);	//x axis
-					xcv[0,1] = crossCorrelation(10,28);	//y axis
-					xcv[0,2] = crossCorrelation(11,29);	//z axis
-					// cr2 = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cr2 = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-
-					cross_value_ = std::max(cr1, cr2);
-					// cross_value_ = cr2;
-					// cr1 = 0;
-
-					if (cr1 > cr2 && cr1 >= xcor_lower_limit)
+					cross_value_ = crossCorrelation(11,9);	//z axis
+					if (cross_value_ >= xcorr_lower_limit)
 					{
-						std::cout << "value of single cross correlation\t" << single1 << std::endl;
-						answer(8);
+						iia_ = 9;
+						answer();
 					}
-					else if (cr2 > cr1 && cr2 >= xcor_lower_limit)
-					{
-						std::cout << "value of single cross correlation\t" << single2 << std::endl;
-						answer(9);
-					}
-
-					// if (cross_value_ >= xcor_lower_limit)
-					// 	answer(9);
-					
 					break;	
 				}
 			}
 			break;
 		}
 
-		case 4:	//case thumb
+		case 4:	//case imu
 		{
 			switch(axis_)
 			{
 
 				case 0:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(4,10);
-
-					xcv[0,0] = crossCorrelation(12,30);	//x axis
-					xcv[0,1] = crossCorrelation(13,31);	//y axis
-					xcv[0,2] = crossCorrelation(14,32);	//z axis
-					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-
-					if (cross_value_ >= xcor_lower_limit)
-						answer(10);
-					
+					cross_value_ = crossCorrelation(12,9);	//x axis (,10)
+					if (cross_value_ >= xcorr_lower_limit)
+					{
+						iia_ = 10;
+						answer();
+					}
 					break;
 				}
 				case 1:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(4,11);
-					
-					xcv[0,0] = crossCorrelation(12,33);	//x axis
-					xcv[0,1] = crossCorrelation(13,34);	//y axis
-					xcv[0,2] = crossCorrelation(14,35);	//z axis
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-					// std::cout << xcv[0,0] << " " << xcv[0,1] << " " << xcv[0,2] << std::endl;
-
-					if (cross_value_ >= xcor_lower_limit)
+					cross_value_ = crossCorrelation(13,11);	//y axis (,11)
+					if (cross_value_ >= xcorr_lower_limit)
 					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;
-						answer(11);
+						iia_ = 11;
+						answer();
 					}
-					
 					break;
 				}
 				case 2:	//case axis
 				{
-					float single;
-					single = singleCrossCorrelation(4,12);
-
-					xcv[0,0] = crossCorrelation(12,36);	//x axis
-					xcv[0,1] = crossCorrelation(13,37);	//y axis
-					xcv[0,2] = crossCorrelation(14,38);	//z axis
-					// cross_value_ = (xcv[0,0] + xcv[0,1] + xcv[0,2])/3;
-					cross_value_ = std::max( std::max(xcv[0,0],xcv[0,1]), std::max(xcv[0,0],xcv[0,2]));
-					// std::cout << xcv[0,0] << " " << xcv[0,1] << " " << xcv[0,2] << std::endl;
-
-					if (cross_value_ >= xcor_lower_limit)
+					cross_value_ = crossCorrelation(14,12);	//z axis (,12)
+					if (cross_value_ >= xcorr_lower_limit)
 					{
-						std::cout << "value of single cross correlation\t" << single << std::endl;	
-						answer(12);
+						iia_ = 12;
+						answer();
 					}
-					
 					break;
 				}
 			}
@@ -929,7 +624,7 @@ void proto_functions::possibleFinger()
 /*********************************************************************/
 /*********************************************************************/
 
-void proto_functions::answer(int direction)
+void proto_functions::answer()
 {
 	std_msgs::String finger;
 
@@ -945,26 +640,29 @@ void proto_functions::answer(int direction)
 	f[7] = "side_index";
 	f[8] = "frontal_index";
 	f[9] = "vertical_index";
-	f[10] = "vertical_thumb";
-	f[11] = "frontal_thumb";
+	// f[10] = "side_thumb";
+	// f[11] = "frontal_thumb";
+	// f[12] = "vertical_thumb";
 	f[12] = "side_thumb";
+	f[11] = "frontal_thumb";
+	f[10] = "vertical_thumb";
 	f[13] = "default";
 
 	wait_flag_ = true;
 
 	std::cout << "Hit imu number\t" << hit_imu_ << std::endl;
-	std::cout << "on\t" << f[direction] << std::endl;
+	std::cout << "on\t" << f[iia_] << std::endl;
 	std::cout << "cross value equal to\t" << cross_value_ << std::endl;
 	
-	finger.data = f[direction];
+	finger.data = f[iia_];
 	pub_fig_.publish(finger);
 	
 	cross_value_ = 0;
 
 	sleep(1);
 	//to avoid continuing grasp
-	direction = 13;
-	finger.data = f[direction];
+	iia_ = 13;
+	finger.data = f[iia_];
 	pub_fig_.publish(finger);
 }
 
@@ -1020,102 +718,24 @@ bool proto_functions::GyroControl()
 	int i = hit_imu_,j;
 	int f = 8;
 	float max_av = 500;
-	float min_av = 20;
+	float min_av = 25;
 	float max_gx = 0, max_gy = 0, max_gz = 0;
-	// float g1 = 0, g2 = 0;
 	int count_gyro_x = 0, count_gyro_y = 0, count_gyro_z = 0;
-	int gap = 2;
+	int gap = 3;
 
-
-	//computing the counters for each gyroscope
-	switch (hit_imu_)
+	switch(axis_)
 	{
-		case 0:	//case index
+		case 0:
 		{
 			for (j=3; j<f; j++)
 			{
-
-				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av && matrix_gyro_x_(i,j) < 0)
-				{
-					max_gx = matrix_gyro_x_(i,j);
-					count_gyro_x ++;
-				}
-				
+				// if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) < max_av)
 				if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
 				{
 					max_gy = matrix_gyro_y_(i,j);
 					count_gyro_y ++;
 				}
-				
-				if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av && matrix_gyro_z_(i,j) < 0)
-				{
-					max_gz = matrix_gyro_z_(i,j);
-					count_gyro_z ++;
-				}
-			}
-
-			// if (count_gyro_x >= gap && count_gyro_y >= count_gyro_z)	//vertical
-			
-
-
-
-			
-			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side
-			{
-					axis_ = 0;
-					return true;	
-			}
-			else if (fabs(max_gx) > (fabs(max_gz)+min_av) && count_gyro_x >= gap )
-			{
-					axis_ = 2;
-					return true;
-			}
-			else if (fabs(max_gx) < (fabs(max_gz)+min_av) && count_gyro_x >= gap )
-			{
-					axis_ = 1;
-					return true;
-			}
-			else
-				return false;
-
-
-			break;
-
-
-
-
-
-				// if (count_gyro_y > count_gyro_z)	//vertical
-				// {
-					// axis_ = 2;
-					// return true;
-				// }
-				// else if (count_gyro_y < count_gyro_z)	//frontal
-				// {
-					// std::cout << "frontal index\n";
-					// axis_ = 1;
-					// return true;
-				// }
-
-		}
-
-		case 1:	// case ring
-		{
-			for (j=3; j<f; j++)
-			{
-
-				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av && matrix_gyro_x_(i,j) < 0)
-				{
-					max_gx = matrix_gyro_x_(i,j);
-					count_gyro_x ++;
-				}
-				
-				if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
-				{
-					max_gy = matrix_gyro_y_(i,j);
-					count_gyro_y ++;
-				}
-				
+				// if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) < max_av)
 				if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av)
 				{
 					max_gz = matrix_gyro_z_(i,j);
@@ -1123,328 +743,64 @@ bool proto_functions::GyroControl()
 				}
 			}
 
-			
-			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side
-			{
-					axis_ = 0;
-					return true;	
-			}
-			else if (fabs(max_gx) > (fabs(max_gz)+min_av) && count_gyro_x >= gap )
-			{
-					axis_ = 2;
-					return true;
-			}
-			else if (fabs(max_gx) < (fabs(max_gz)+min_av) && count_gyro_x >= gap )
-			{
-					axis_ = 1;
-					return true;
-			}
-			else
-				return false;
+
+			if (count_gyro_z >= gap && count_gyro_y < count_gyro_z)
+				return true;
 
 			break;
-
-
-			// if (count_gyro_x >= gap && count_gyro_y >= gap)	//vertical
-			// {
-			// 	axis_ = 2;
-			// 	return true;
-			// }
-			// else if (count_gyro_x >= gap && count_gyro_z >= gap)	//frontal
-			// {
-			// 	axis_ = 1;
-			// 	return true;
-			// }
-			// else return false;
-
-			// if (fabs(max_gx) > fabs(max_gz) && count_gyro_x>= gap)	//vertical
-			// {
-			// 	axis_ = 2;
-			// 	return true;
-			// }
-			// else if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//frontal
-			// {
-			// 	// std::cout << "maybe frontal ring\n";
-			// 	axis_ = 1;
-			// 	return true;
-			// }
-			// else return false;
-
-			// break;
-
 		}
 
-		case 2:	// case middle
+		case 1:
 		{
 			for (j=3; j<f; j++)
 			{
-				//control on middle
-				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av && matrix_gyro_x_(i,j) < 0)
+				// if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) < max_av)
+				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av)
 				{
 					max_gx = matrix_gyro_x_(i,j);
 					count_gyro_x ++;
 				}
-				
-				if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
-				{
-					max_gy = matrix_gyro_y_(i,j);
-					count_gyro_y ++;
-				}
-				
+
+				// if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) < max_av)
 				if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av)
 				{
 					max_gz = matrix_gyro_z_(i,j);
 					count_gyro_z ++;
 				}
-
-				/*
-				//control on index
-				if (fabs(matrix_gyro_x_(i+1,j)) >= 10 && fabs(matrix_gyro_x_(i+1,j)) > fabs(g1) && fabs(matrix_gyro_x_(i+1,j)) < max_av)
-				{
-					g1 = matrix_gyro_x_(i+1,j);
-					// count_gyro_x ++;
-				}
-				//control on ring
-				if (fabs(matrix_gyro_x_(i-1,j)) >= 10 && fabs(matrix_gyro_x_(i-1,j)) > fabs(g2) && fabs(matrix_gyro_x_(i-1,j)) < max_av)
-				{
-					g2 = matrix_gyro_x_(i-1,j);
-					// count_gyro_x ++;
-				}
-				*/
 			}
 
-				
-			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side
-			{
-					axis_ = 0;
-					return true;	
-			}
-			else if (fabs(max_gx) > (fabs(max_gz)+min_av) && count_gyro_x >= gap )
-			{
-					axis_ = 2;
-					return true;
-			}
-			else if (fabs(max_gx) < (fabs(max_gz)+min_av) && count_gyro_x >= gap )
-			{
-					axis_ = 1;
-					return true;
-			}
-			else
-				return false;
+			if (count_gyro_z >= gap || count_gyro_x >= gap)
+				return true;
 
-				break;
-
-
-			// if (count_gyro_x >= gap && count_gyro_y >= gap)	//vertical
-			// {
-			// 	axis_ = 2;
-			// 	return true;
-			// }
-			// else if (count_gyro_x >= gap && count_gyro_z >= gap)	//frontal
-			// {
-			// 	axis_ = 1;
-			// 	return true;
-			// }
-			// else return false;
-
-			// if (fabs(max_gx) > fabs(max_gz) && (g1 > 0 || g2 > 0) )	//vertical
-
-			// else if (fabs(max_gx) > fabs(max_gz) && count_gyro_x >= gap)	//vertical
-			// {
-			// 	axis_ = 2;
-			// 	return true;
-			// }
-			// else if (fabs(max_gx) < fabs(max_gz) && count_gyro_z >= gap)	//frontal
-			// {
-			// 	// std::cout << "maybe frontal middle\n";
-			// 	axis_ = 1;
-			// 	return true;
-			// }
-			// else return false;
-
-			// break;
-
+			break;
 		}
 
-		case 3:	//case index
+		case 2:
 		{
 			for (j=3; j<f; j++)
 			{
-
-				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av && matrix_gyro_x_(i,j) < 0)
+				// if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) < max_av)
+				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av)
 				{
 					max_gx = matrix_gyro_x_(i,j);
 					count_gyro_x ++;
 				}
-				
+				// if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) < max_av)
 				if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
 				{
 					max_gy = matrix_gyro_y_(i,j);
 					count_gyro_y ++;
 				}
-				
-				if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av && matrix_gyro_z_(i,j) > 0)
-				{
-					max_gz = matrix_gyro_z_(i,j);
-					count_gyro_z ++;
-				}
 			}
 
-
+			if (count_gyro_x >= gap)
+				return true;
 			
-			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side
-			{
-					axis_ = 0;
-					return true;	
-			}
-			else if (fabs(max_gx) > (fabs(max_gz)+min_av) && count_gyro_x >= gap )
-			{
-					axis_ = 2;
-					return true;
-			}
-			else if (fabs(max_gx) < (fabs(max_gz)+min_av) && count_gyro_x >= gap )
-			{
-					axis_ = 1;
-					return true;
-			}
-			else
-				return false;
-
 			break;
-
-			// if (fabs(max_gx) > fabs(max_gz) && count_gyro_x >= gap)
-			// {
-			// 	// if (count_gyro_y > count_gyro_z)	//vertical
-			// 	// {
-			// 		axis_ = 2;
-			// 		return true;
-			// 	// }
-			// 	// else if (count_gyro_y < count_gyro_z)	//frontal
-			// 	// {
-			// 	// 	// std::cout << "frontal index\n";
-			// 	// 	axis_ = 1;
-			// 	// 	return true;
-			// 	// }
-			// }
-			// else if (fabs(max_gz) > fabs(max_gx))	//side
-			// {
-			// 	if(count_gyro_z >= gap)
-			// 	{
-			// 		axis_ = 0;
-			// 		return true;
-			// 	}
-			// }
-			// else
-			// 	return false;
-
-			// break;
-
 		}
-
-		case 4:	//case thumb
-		{
-			for (j=3; j<f; j++)
-			{
-
-				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av)
-				{
-					max_gx = matrix_gyro_x_(i,j);
-					count_gyro_x ++;
-				}
-				
-				if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
-				{
-					max_gy = matrix_gyro_y_(i,j);
-					count_gyro_y ++;
-				}
-				
-				if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av && matrix_gyro_z_(i,j) > 0)
-				{
-					max_gz = matrix_gyro_z_(i,j);
-					count_gyro_z ++;
-				}
-			}
-
-			if (fabs(max_gx) > fabs(max_gz))
-			{
-				if (count_gyro_x >= gap && max_gx > 0)	// vertical
-				{
-					axis_ = 2;
-					return true;
-				}
-				else if (count_gyro_x >= gap && max_gx < 0)	// frontal
-				{
-					axis_ = 1;
-					return true;
-				}
-			}
-			else if (fabs(max_gz) > fabs(max_gx))	//side
-			{
-				if(count_gyro_z >= gap)
-				{
-					axis_ = 0;
-					return true;
-				}
-			}
-			else
-				return false;
-
-			break;
-
-		}
-
-		default:
-				break;
 	}
 
-
-
-
-
-	/*	for (j=3; j<f; j++)
-		{
-			if (matrix_gyro_x_(i,j) < 0)
-			{
-				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av)
-				{
-					max_gx = matrix_gyro_x_(i,j);
-					count_gyro_x ++;
-				}
-			}
-			if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
-			{
-				max_gy = matrix_gyro_y_(i,j);
-				count_gyro_y ++;
-			}
-			if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av)
-			{
-				max_gz = matrix_gyro_z_(i,j);
-				count_gyro_z ++;
-			}
-		}*/
-
-	/*if (count_gyro_x >= gap && count_gyro_z >= gap && count_gyro_y >= gap)
-	{
-		axis_ = 1;
-		return true;
-	}
-	else if (count_gyro_z >= gap && count_gyro_z >= count_gyro_x && count_gyro_z >= count_gyro_y)
-	{
-		axis_ = 0;
-		return true;
-	}
-	else if (count_gyro_x >= gap && count_gyro_x >= count_gyro_y && count_gyro_x >= count_gyro_z)
-	{
-		axis_ = 2;
-		return true;
-	}
-	// else if ( count_gyro_x >= gap && count_gyro_z >= gap && count_gyro_y >= gap)
-	// {
-	// 	axis_ = 1;
-	// 	return true;
-	// }
-	// else
-	// 	return false;*/
+	
 }
 
 
@@ -1503,8 +859,8 @@ void proto_functions::protoManager()
 		/* control */
 		if (!wait_flag_)
 		{
-			if (AccControl())
-					if (GyroControl())
+			if(AccControl())
+					if(GyroControl())
 						possibleFinger();
 		}
 

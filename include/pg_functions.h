@@ -44,11 +44,9 @@ private:
 
     //matrix for accelerations
     Eigen::MatrixXf matrix_acc_;
-    Eigen::MatrixXf single_acc_;
 
     //matrix for xcorr
     Eigen::MatrixXf database_window_;
-    Eigen::MatrixXf database_window1_;
 
     int database_size_;
     int count_filt_;
@@ -76,17 +74,16 @@ private:
     bool AccControl();
 
     //checkMaxAcc
-    float checkMaxAcc(int imu_number);
+    float checkMaxAcc(int imu_number, bool v);
     
     //CrossCorrelation
     float crossCorrelation(int axis, int d);
-    float singleCrossCorrelation(int axis, int d);
 
     //possibleFinger
     void possibleFinger();
 
     //answer
-    void answer(int direction);
+    void answer();
 
 
 /************************* gyroscopes part **************************/
@@ -95,8 +92,6 @@ private:
     Eigen::MatrixXf matrix_gyro_x_;
     Eigen::MatrixXf matrix_gyro_y_;
     Eigen::MatrixXf matrix_gyro_z_;
-
-    int direction_;
 
     //callGyro
     void callGyro(qb_interface::inertialSensorArray imu_gyro);

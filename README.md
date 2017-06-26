@@ -1,4 +1,4 @@
-# contact_detection (complete version)
+# contact_detection (reduced version)
 
 contact_detection is a code to recognize contacts for a moving robotic hand (here the Pisa/IIT Soft Hand) with a Sensorized Glove (IMUs and a PSoC uC).
 
