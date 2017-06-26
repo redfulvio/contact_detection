@@ -339,7 +339,6 @@ float proto_functions::checkMaxAcc(int imu, bool v)
 		tmp_value[i] = 0;
 
 	//the recorded pic is in position number 4
-
 	for (i=3; i<5; i++)
 	{
 		if(fabs(matrix_acc_(3*imu,i)) > tmp_value[0])		//max on x
