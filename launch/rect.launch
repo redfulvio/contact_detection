@@ -1,0 +1,9 @@
+<launch>
+
+	<arg name="yamlFile" default="$(find contact_detection)/config/rect_data.yaml"/>
+
+	<rosparam command="load" file="$(arg yamlFile)"/>
+
+	<node name="contact_detection_node" pkg="contact_detection" type="contact_detection_node" args="0" output="screen" />
+	
+</launch>
