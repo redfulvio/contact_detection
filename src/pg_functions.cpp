@@ -288,6 +288,7 @@ void proto_functions::loadAcc()
 /*********************************************************************/
 /*********************************************************************/
 
+
 bool proto_functions::AccControl()
 {
 	int i;
@@ -297,9 +298,11 @@ bool proto_functions::AccControl()
 	std::vector<float> imu_value;
 	imu_value.resize(imu_num_);
 
+	//taking the maximum value for each imu
 	for (i=0; i<imu_num_; i++)
-		imu_value[i] = checkMaxAcc(i,true); 
+		imu_value[i] = checkMaxAcc(i); 
 
+	//checking the maximum
 	for (i=0; i<imu_num_; i++)
 	{
 		if (value < imu_value[i])
@@ -312,70 +315,150 @@ bool proto_functions::AccControl()
 	if (hit == 100)
 		return false; 	
 
+	//control on lower limit
 	if (imu_value[hit] > trade)
 	{
 		hit_imu_ = hit;
-		axis_ = checkMaxAcc(hit_imu_,false);
 		return true;
 	}
 	else
 		return false;
-
 }
 
 
+// bool proto_functions::AccControl()
+// {
+// 	int i;
+// 	int hit = 100;	//NaN
+// 	float trade = 0.1;	
+// 	float value = 0;
+// 	std::vector<float> imu_value;
+// 	imu_value.resize(imu_num_);
+
+// 	for (i=0; i<imu_num_; i++)
+// 		imu_value[i] = checkMaxAcc(i,true); 
+
+// 	for (i=0; i<imu_num_; i++)
+// 	{
+// 		if (value < imu_value[i])
+// 		{
+// 			value = imu_value[i];
+// 			hit = i;
+// 		}
+// 	}
+
+// 	if (hit == 100)
+// 		return false; 	
+
+// 	if (imu_value[hit] > trade)
+// 	{
+// 		hit_imu_ = hit;
+// 		axis_ = checkMaxAcc(hit_imu_,false);
+// 		return true;
+// 	}
+// 	else
+// 		return false;
+
+// }
+
+
 /*********************************************************************/
 /*********************************************************************/
 
-float proto_functions::checkMaxAcc(int imu, bool v)
+float proto_functions::checkMaxAcc(int imu)
 {
 	int i;
 	float max_value = 0;
 	std::vector<float> tmp_value;
 	tmp_value.resize(3);
-	int axis;
+	// int axis;
+	float max1, max2;
 
 	for (i=0; i<3; i++)
 		tmp_value[i] = 0;
 
+
 	//the recorded pic is in position number 4
-	for (i=3; i<5; i++)
+	for (i=3; i<4; i++)
 	{
-		if(fabs(matrix_acc_(3*imu,i)) > tmp_value[0])		//max on x
-			tmp_value[0] = fabs(matrix_acc_(3*imu,i));
+		if(fabs(matrix_acc_(3*imu,i)) > fabs(tmp_value[0]))		//max on x
+			tmp_value[0] = matrix_acc_(3*imu,i);
 
-		if(fabs(matrix_acc_(3*imu+1,i)) > tmp_value[1])		//max on y
-			tmp_value[1] = fabs(matrix_acc_(3*imu+1,i));
+		if(fabs(matrix_acc_(3*imu+1,i)) > fabs(tmp_value[1]))		//max on y
+			tmp_value[1] = matrix_acc_(3*imu+1,i);
 
-		if(fabs(matrix_acc_(3*imu+2,i)) > tmp_value[2])		//max on z
-			tmp_value[2] = fabs(matrix_acc_(3*imu+2,i));
+		if(fabs(matrix_acc_(3*imu+2,i)) > fabs(tmp_value[2]))		//max on z
+			tmp_value[2] = matrix_acc_(3*imu+2,i);
 	}
 
-
-	if (tmp_value[0] > tmp_value[1] && tmp_value[0] > tmp_value[2])
+	if (fabs(tmp_value[0]) > fabs(tmp_value[1]) && fabs(tmp_value[0]) > fabs(tmp_value[2]))
 	{
-		max_value = tmp_value[0];
-		axis = 0;
-	}
-		
-	if (tmp_value[1] > tmp_value[0] && tmp_value[1] > tmp_value[2])
-	{
-		max_value = tmp_value[1];
-		axis = 1;
-	}
-
-	if (tmp_value[2] > tmp_value[0] && tmp_value[2] > tmp_value[1])
-	{
-		max_value = tmp_value[2];
-		axis = 2;
-	}
-
-	if(v)
+		max_value = fabs(tmp_value[0]);
 		return max_value;
-	else
-		return axis;
+	}
+	else if (fabs(tmp_value[1]) > fabs(tmp_value[0]) && fabs(tmp_value[1]) > fabs(tmp_value[2]))
+	{
+		max_value = fabs(tmp_value[1]);
+		return max_value;
+	}
+	else if (fabs(tmp_value[2]) > fabs(tmp_value[0]) && fabs(tmp_value[2]) > fabs(tmp_value[1]))
+	{
+		max_value = fabs(tmp_value[2]);
+		return max_value;
+	}
 
 }
+
+
+// float proto_functions::checkMaxAcc(int imu, bool v)
+// {
+// 	int i;
+// 	float max_value = 0;
+// 	std::vector<float> tmp_value;
+// 	tmp_value.resize(3);
+// 	int axis;
+
+// 	for (i=0; i<3; i++)
+// 		tmp_value[i] = 0;
+
+// 	//the recorded pic is in position number 4
+// 	for (i=3; i<5; i++)
+// 	{
+// 		if(fabs(matrix_acc_(3*imu,i)) > tmp_value[0])		//max on x
+// 			tmp_value[0] = fabs(matrix_acc_(3*imu,i));
+
+// 		if(fabs(matrix_acc_(3*imu+1,i)) > tmp_value[1])		//max on y
+// 			tmp_value[1] = fabs(matrix_acc_(3*imu+1,i));
+
+// 		if(fabs(matrix_acc_(3*imu+2,i)) > tmp_value[2])		//max on z
+// 			tmp_value[2] = fabs(matrix_acc_(3*imu+2,i));
+// 	}
+
+
+// 	if (tmp_value[0] > tmp_value[1] && tmp_value[0] > tmp_value[2])
+// 	{
+// 		max_value = tmp_value[0];
+// 		axis = 0;
+// 	}
+		
+// 	if (tmp_value[1] > tmp_value[0] && tmp_value[1] > tmp_value[2])
+// 	{
+// 		max_value = tmp_value[1];
+// 		axis = 1;
+// 	}
+
+// 	if (tmp_value[2] > tmp_value[0] && tmp_value[2] > tmp_value[1])
+// 	{
+// 		max_value = tmp_value[2];
+// 		axis = 2;
+// 	}
+
+// 	if(v)
+// 		return max_value;
+// 	else
+// 		return axis;
+
+// }
 
 /*********************************************************************/
 /*********************************************************************/
@@ -427,7 +510,7 @@ float proto_functions::crossCorrelation(int axis, int d)
 
 void proto_functions::possibleFinger()
 {
-	float xcorr_lower_limit = 0.65;
+	float xcorr_lower_limit = 0.50;
 
 	switch(hit_imu_)
 	{
@@ -439,30 +522,32 @@ void proto_functions::possibleFinger()
 				{
 						cross_value_ = crossCorrelation(0,0);	//x axis
 						if (cross_value_ >= xcorr_lower_limit)
-						{
-							iia_ = 0;
-							answer();
-						}
+							answer(0);
+						
 						break;
 				}
 				case 1:	//case axis
 				{
-						cross_value_ = crossCorrelation(1,0);	//y axis
+						cross_value_ = crossCorrelation(1,1);	//y axis
 						if (cross_value_ >= xcorr_lower_limit)
-						{
-							iia_ = 1;
-							answer();
-						}
+							answer(1);
+					
 						break;
 				}
 				case 2:	//case axis
 				{
-					cross_value_ = crossCorrelation(2,9);	//z axis  (,2)
-					if (cross_value_ >= xcorr_lower_limit)
-					{
-						iia_ = 2;			
-						answer();
-					}
+					float cr1, cr2;
+
+					cr1 = crossCorrelation(1,1);
+					cr2 = crossCorrelation(2,2);
+
+					cross_value_ = std::max(cr1, cr2);
+
+					if (cr1 > cr2 && cr1 >= xcorr_lower_limit)
+						answer(1);
+					else if(cr2 > cr1 && cr2 >= xcorr_lower_limit)
+						answer(2);
+
 					break;
 				}
 			}
@@ -482,20 +567,24 @@ void proto_functions::possibleFinger()
 				{
 					cross_value_ = crossCorrelation(4,3);	//y axis
 					if (cross_value_ >= xcorr_lower_limit)
-					{
-						iia_ = 3;
-						answer();
-					}
+						answer(3);
+
 					break;
 				}
 				case 2:	//case axis
 				{
-					cross_value_ = crossCorrelation(5,9);	//z axis (,4)
-					if (cross_value_ >= xcorr_lower_limit)
-					{
-						iia_ = 4;
-						answer();
-					}
+					float cr1, cr2;
+
+					cr1 = crossCorrelation(4,3);
+					cr2 = crossCorrelation(5,4);
+
+					cross_value_ = std::max(cr1, cr2);
+
+					if (cr1 > cr2 && cr1 >= xcorr_lower_limit)
+						answer(3);
+					else if(cr2 > cr1 && cr2 >= xcorr_lower_limit)
+						answer(4);
+	
 					break;
 				}
 			}
@@ -515,20 +604,24 @@ void proto_functions::possibleFinger()
 				{
 					cross_value_ = crossCorrelation(7,5);	//y axis
 					if (cross_value_ >= xcorr_lower_limit)
-					{
-						iia_ = 5;
-						answer();
-					}
+						answer(5);
+
 					break;
 				}
 				case 2:	//case axis
 				{	
-					cross_value_ = crossCorrelation(8,9);	//z axis (,6)
-					if (cross_value_ >= xcorr_lower_limit)
-					{
-						iia_ = 6;
-						answer();
-					}
+					float cr1, cr2;
+
+					cr1 = crossCorrelation(7,5);
+					cr2 = crossCorrelation(8,6);
+
+					cross_value_ = std::max(cr1, cr2);
+
+					if (cr1 > cr2 && cr1 >= xcorr_lower_limit)
+						answer(5);
+					else if(cr2 > cr1 && cr2 >= xcorr_lower_limit)
+						answer(6);
+	
 					break;	
 				}
 			}
@@ -543,30 +636,33 @@ void proto_functions::possibleFinger()
 				{
 					cross_value_ = crossCorrelation(9,7);	//x axis
 					if (cross_value_ >= xcorr_lower_limit)
-					{
-						iia_ = 7;
-						answer();
-					}
+						answer(7);
+
 					break;
 				}
 				case 1:	//case axis
 				{
 					cross_value_ = crossCorrelation(10,8);	//y axis
 					if (cross_value_ >= xcorr_lower_limit)
-					{
-						iia_ = 8;
-						answer();
-					}
+						answer(8);
+
 					break;
 				}
 				case 2:	//case axis
 				{
-					cross_value_ = crossCorrelation(11,9);	//z axis
-					if (cross_value_ >= xcorr_lower_limit)
-					{
-						iia_ = 9;
-						answer();
-					}
+
+					float cr1, cr2;
+
+					cr1 = crossCorrelation(10,8);
+					cr2 = crossCorrelation(11,9);
+
+					cross_value_ = std::max(cr1, cr2);
+
+					if (cr1 > cr2 && cr1 >= xcorr_lower_limit)
+						answer(8);
+					else if(cr2 > cr1 && cr2 >= xcorr_lower_limit)
+						answer(9);
+
 					break;	
 				}
 			}
@@ -580,32 +676,26 @@ void proto_functions::possibleFinger()
 
 				case 0:	//case axis
 				{
-					cross_value_ = crossCorrelation(12,9);	//x axis (,10)
+					cross_value_ = crossCorrelation(12,10);	//x axis
 					if (cross_value_ >= xcorr_lower_limit)
-					{
-						iia_ = 10;
-						answer();
-					}
+						answer(10);
+
 					break;
 				}
 				case 1:	//case axis
 				{
-					cross_value_ = crossCorrelation(13,11);	//y axis (,11)
+					cross_value_ = crossCorrelation(13,11);	//y axis
 					if (cross_value_ >= xcorr_lower_limit)
-					{
-						iia_ = 11;
-						answer();
-					}
+						answer(11);
+
 					break;
 				}
 				case 2:	//case axis
 				{
-					cross_value_ = crossCorrelation(14,12);	//z axis (,12)
+					cross_value_ = crossCorrelation(14,12);	//z axis
 					if (cross_value_ >= xcorr_lower_limit)
-					{
-						iia_ = 12;
-						answer();
-					}
+						answer(12);
+
 					break;
 				}
 			}
@@ -623,7 +713,7 @@ void proto_functions::possibleFinger()
 /*********************************************************************/
 /*********************************************************************/
 
-void proto_functions::answer()
+void proto_functions::answer(int direction)
 {
 	std_msgs::String finger;
 
@@ -650,18 +740,18 @@ void proto_functions::answer()
 	wait_flag_ = true;
 
 	std::cout << "Hit imu number\t" << hit_imu_ << std::endl;
-	std::cout << "on\t" << f[iia_] << std::endl;
+	std::cout << "on\t" << f[direction] << std::endl;
 	std::cout << "cross value equal to\t" << cross_value_ << std::endl;
 	
-	finger.data = f[iia_];
+	finger.data = f[direction];
 	pub_fig_.publish(finger);
 	
 	cross_value_ = 0;
 
 	sleep(1);
 	//to avoid continuing grasp
-	iia_ = 13;
-	finger.data = f[iia_];
+	direction = 13;
+	finger.data = f[direction];
 	pub_fig_.publish(finger);
 }
 
@@ -717,90 +807,264 @@ bool proto_functions::GyroControl()
 	int i = hit_imu_,j;
 	int f = 8;
 	float max_av = 500;
-	float min_av = 25;
+	float min_av = 20;
 	float max_gx = 0, max_gy = 0, max_gz = 0;
 	int count_gyro_x = 0, count_gyro_y = 0, count_gyro_z = 0;
-	int gap = 3;
+	int gap = 2;
 
-	switch(axis_)
+
+	//computing the counters for each gyroscope
+	switch (hit_imu_)
 	{
-		case 0:
+		case 0:	//case index
 		{
 			for (j=3; j<f; j++)
 			{
-				// if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) < max_av)
+
+				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av && matrix_gyro_x_(i,j) < 0)
+				{
+					max_gx = matrix_gyro_x_(i,j);
+					count_gyro_x ++;
+				}
+				
 				if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
 				{
 					max_gy = matrix_gyro_y_(i,j);
 					count_gyro_y ++;
 				}
-				// if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) < max_av)
-				if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av)
+				
+				if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av && matrix_gyro_z_(i,j) < 0)
 				{
 					max_gz = matrix_gyro_z_(i,j);
 					count_gyro_z ++;
 				}
 			}
+		
 
-
-			if (count_gyro_z >= gap && count_gyro_y < count_gyro_z)
-				return true;
-
-			break;
-		}
-
-		case 1:
-		{
-			for (j=3; j<f; j++)
-			{
-				// if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) < max_av)
-				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av)
-				{
-					max_gx = matrix_gyro_x_(i,j);
-					count_gyro_x ++;
-				}
-
-				// if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) < max_av)
-				if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av)
-				{
-					max_gz = matrix_gyro_z_(i,j);
-					count_gyro_z ++;
-				}
-			}
-
-			if (count_gyro_z >= gap || count_gyro_x >= gap)
-				return true;
-
-			break;
-		}
-
-		case 2:
-		{
-			for (j=3; j<f; j++)
-			{
-				// if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) < max_av)
-				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av)
-				{
-					max_gx = matrix_gyro_x_(i,j);
-					count_gyro_x ++;
-				}
-				// if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) < max_av)
-				if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
-				{
-					max_gy = matrix_gyro_y_(i,j);
-					count_gyro_y ++;
-				}
-			}
-
-			if (count_gyro_x >= gap)
-				return true;
 			
+			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side
+			{
+					axis_ = 0;
+					return true;	
+			}
+			else if (fabs(max_gx) > (fabs(max_gz)+min_av) && count_gyro_x >= gap )
+			{
+					axis_ = 2;
+					return true;
+			}
+			else if (fabs(max_gx) < (fabs(max_gz)+min_av) && count_gyro_x >= gap )
+			{
+					axis_ = 1;
+					return true;
+			}
+			else
+				return false;
+
+
 			break;
+
 		}
+
+		case 1:	// case ring
+		{
+			for (j=3; j<f; j++)
+			{
+
+				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av && matrix_gyro_x_(i,j) < 0)
+				{
+					max_gx = matrix_gyro_x_(i,j);
+					count_gyro_x ++;
+				}
+				
+				if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
+				{
+					max_gy = matrix_gyro_y_(i,j);
+					count_gyro_y ++;
+				}
+				
+				if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av)
+				{
+					max_gz = matrix_gyro_z_(i,j);
+					count_gyro_z ++;
+				}
+			}
+
+			
+			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side (never occurs)
+			{
+					axis_ = 0;
+					return true;	
+			}
+			else if (fabs(max_gx) > (fabs(max_gz)+min_av) && count_gyro_x >= gap )
+			{
+					axis_ = 2;
+					return true;
+			}
+			else if (fabs(max_gx) < (fabs(max_gz)+min_av) && count_gyro_x >= gap )
+			{
+					axis_ = 1;
+					return true;
+			}
+			else
+				return false;
+
+			break;
+
+		}
+
+		case 2:	// case middle
+		{
+			for (j=3; j<f; j++)
+			{
+				//control on middle
+				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av && matrix_gyro_x_(i,j) < 0)
+				{
+					max_gx = matrix_gyro_x_(i,j);
+					count_gyro_x ++;
+				}
+				
+				if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
+				{
+					max_gy = matrix_gyro_y_(i,j);
+					count_gyro_y ++;
+				}
+				
+				if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av)
+				{
+					max_gz = matrix_gyro_z_(i,j);
+					count_gyro_z ++;
+				}
+			}
+
+				
+			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side (never occurs)
+			{
+					axis_ = 0;
+					return true;	
+			}
+			else if (fabs(max_gx) > (fabs(max_gz)+min_av) && count_gyro_x >= gap )
+			{
+					axis_ = 2;
+					return true;
+			}
+			else if (fabs(max_gx) < (fabs(max_gz)+min_av) && count_gyro_x >= gap )
+			{
+					axis_ = 1;
+					return true;
+			}
+			else
+				return false;
+
+				break;
+
+		}
+
+		case 3:	//case index
+		{
+			for (j=3; j<f; j++)
+			{
+
+				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av && matrix_gyro_x_(i,j) < 0)
+				{
+					max_gx = matrix_gyro_x_(i,j);
+					count_gyro_x ++;
+				}
+				
+				if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
+				{
+					max_gy = matrix_gyro_y_(i,j);
+					count_gyro_y ++;
+				}
+				
+				if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av && matrix_gyro_z_(i,j) > 0)
+				{
+					max_gz = matrix_gyro_z_(i,j);
+					count_gyro_z ++;
+				}
+			}
+
+
+			
+			if (fabs(max_gz) > fabs(max_gx) && count_gyro_z >= gap)	//side
+			{
+					axis_ = 0;
+					return true;	
+			}
+			else if (fabs(max_gx) > (fabs(max_gz)+min_av) && count_gyro_x >= gap )
+			{
+					axis_ = 2;
+					return true;
+			}
+			else if (fabs(max_gx) < (fabs(max_gz)+min_av) && count_gyro_x >= gap )
+			{
+					axis_ = 1;
+					return true;
+			}
+			else
+				return false;
+
+			break;
+
+		}
+
+		case 4:	//case thumb
+		{
+			for (j=3; j<f; j++)
+			{
+
+				if (fabs(matrix_gyro_x_(i,j)) >= min_av && fabs(matrix_gyro_x_(i,j)) > fabs(max_gx) && fabs(matrix_gyro_x_(i,j)) < max_av)
+				{
+					max_gx = matrix_gyro_x_(i,j);
+					count_gyro_x ++;
+				}
+				
+				if (fabs(matrix_gyro_y_(i,j)) >= min_av && fabs(matrix_gyro_y_(i,j)) > fabs(max_gy) && fabs(matrix_gyro_y_(i,j)) < max_av)
+				{
+					max_gy = matrix_gyro_y_(i,j);
+					count_gyro_y ++;
+				}
+				
+				if (fabs(matrix_gyro_z_(i,j)) >= min_av && fabs(matrix_gyro_z_(i,j)) > fabs(max_gz) && fabs(matrix_gyro_z_(i,j)) < max_av && matrix_gyro_z_(i,j) > 0)
+				{
+					max_gz = matrix_gyro_z_(i,j);
+					count_gyro_z ++;
+				}
+			}
+
+			if (fabs(max_gx) > fabs(max_gz))
+			{
+				if (count_gyro_x >= gap && max_gx > 0)	// vertical
+				{
+					axis_ = 2;
+					return true;
+				}
+				else if (count_gyro_x >= gap && max_gx < 0)	// frontal
+				{
+					axis_ = 1;
+					return true;
+				}
+			}
+			else if (fabs(max_gz) > fabs(max_gx))	//side
+			{
+				if(count_gyro_z >= gap)
+				{
+					axis_ = 0;
+					return true;
+				}
+			}
+			else
+				return false;
+
+			break;
+
+		}
+
+		default:
+				break;
 	}
 
-	
 }
+
 
 
 /*********************************************************************/

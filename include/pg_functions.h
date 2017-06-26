@@ -50,7 +50,6 @@ private:
 
     int database_size_;
     int count_filt_;
-    int iia_; //interested imu axis
     int axis_;
     
     float cross_value_;
@@ -74,7 +73,8 @@ private:
     bool AccControl();
 
     //checkMaxAcc
-    float checkMaxAcc(int imu_number, bool v);
+    float checkMaxAcc(int imu_number);
+    // float checkMaxAcc(int imu_number, bool v);
     
     //CrossCorrelation
     float crossCorrelation(int axis, int d);
@@ -83,7 +83,7 @@ private:
     void possibleFinger();
 
     //answer
-    void answer();
+    void answer(int direction);
 
 
 /************************* gyroscopes part **************************/
