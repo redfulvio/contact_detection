@@ -11,4 +11,9 @@ The command to launch the programm is:
 
 `roslaunch contact_detection rect.launch`
 
-The code use cross-correlation in real time to recognise contacts using accelerometers data. There is a data set to compare the signals. Gyroscopes let a better identification of the contacts. 
+The code use cross-correlation in real time to recognise contacts using accelerometers data. There is a data set to compare the  signals.Gyroscopes let a better identification of the contacts. 
+
+## Notes
+
+The main difference respect to the "complete version" is assuming that all the contact information acquired by accelerometers is contained into one axis (that one relative to the contact direction). 
+
